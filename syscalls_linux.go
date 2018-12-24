@@ -7,6 +7,7 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
+	"log"
 )
 
 const (
@@ -14,6 +15,10 @@ const (
 	cIFF_TAP         = 0x0002
 	cIFF_NO_PI       = 0x1000
 	cIFF_MULTI_QUEUE = 0x0100
+
+    TUNSETQUEUE       uint32 = 0x400454d9
+    cIFF_DETACH_QUEUE uint16 = 0x0400
+    cIFF_ATTACH_QUEUE uint16 = 0x0200	
 )
 
 type ifReq struct {
@@ -50,7 +55,7 @@ func newTAP(config Config) (ifce *Interface, err error) {
 		return nil, err
 	}
 
-	ifce = &Interface{isTAP: true, ReadWriteCloser: file, name: name}
+	ifce = &Interface{isTAP: true, ReadWriteCloser: file, name: name, File: file}
 	return
 }
 
@@ -74,7 +79,7 @@ func newTUN(config Config) (ifce *Interface, err error) {
 		return nil, err
 	}
 
-	ifce = &Interface{isTAP: false, ReadWriteCloser: file, name: name}
+	ifce = &Interface{isTAP: false, ReadWriteCloser: file, name: name, File: file}
 	return
 }
 
@@ -87,6 +92,8 @@ func createInterface(fd uintptr, ifName string, flags uint16) (createdIFName str
 	if err != nil {
 		return
 	}
+
+	log.Printf("TUN %s created (%d)\n", ifName, fd)
 
 	createdIFName = strings.Trim(string(req.Name[:]), "\x00")
 	return

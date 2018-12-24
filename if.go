@@ -3,6 +3,8 @@ package water
 import (
 	"errors"
 	"io"
+	"os"
+	"unsafe"
 )
 
 // Interface is a TUN/TAP interface.
@@ -14,6 +16,8 @@ type Interface struct {
 	isTAP bool
 	io.ReadWriteCloser
 	name string
+	File *os.File
+	attached bool
 }
 
 // DeviceType is the type for specifying device types.
@@ -79,4 +83,30 @@ func (ifce *Interface) IsTAP() bool {
 // Name returns the interface name of ifce, e.g. tun0, tap1, tun0, etc..
 func (ifce *Interface) Name() string {
 	return ifce.name
+}
+
+func (ifce *Interface) QueueAttach() (err error) {
+	var qreq  ifReq
+	qreq.Flags = cIFF_ATTACH_QUEUE
+	if err := ioctl(ifce.File.Fd(), uintptr(TUNSETQUEUE), uintptr(unsafe.Pointer(&qreq))); err != nil {
+        os.NewSyscallError("ioctl TUNSETQUEUE attach:", err)
+        return err
+    }
+    ifce.attached = true
+    return nil
+}
+
+func (ifce *Interface) QueueDetach() (err error) {
+	var qreq  ifReq
+	qreq.Flags = cIFF_DETACH_QUEUE
+	if err := ioctl(ifce.File.Fd(), uintptr(TUNSETQUEUE), uintptr(unsafe.Pointer(&qreq))); err != nil {
+        os.NewSyscallError("ioctl TUNSETQUEUE detach:", err)
+        return err
+    }
+    ifce.attached = false
+    return nil
+}
+
+func (ifce *Interface) IsQueueAttached() (a bool) {
+	return ifce.attached
 }
