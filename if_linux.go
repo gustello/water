@@ -4,6 +4,8 @@ package water
 
 import (
 	"fmt"
+    "unsafe"
+    "os"
 )
 
 // NewTAP creates a new TAP interface whose name is ifName. If ifName is empty, a
@@ -29,4 +31,30 @@ func NewTUN(ifName string) (ifce *Interface, err error) {
 	config := Config{DeviceType: TUN}
 	config.Name = ifName
 	return newTUN(config)
+}
+
+func (ifce *Interface) QueueAttach() (err error) {
+    var qreq  ifReq
+    ifce.attached = true
+    qreq.Flags = cIFF_ATTACH_QUEUE
+    if err := ioctl(ifce.File.Fd(), uintptr(TUNSETQUEUE), uintptr(unsafe.Pointer(&qreq))); err != nil {
+        os.NewSyscallError("ioctl TUNSETQUEUE attach:", err)
+        return err
+    }
+    return nil
+}
+
+func (ifce *Interface) QueueDetach() (err error) {
+    var qreq  ifReq
+    ifce.attached = false
+    qreq.Flags = cIFF_DETACH_QUEUE
+    if err := ioctl(ifce.File.Fd(), uintptr(TUNSETQUEUE), uintptr(unsafe.Pointer(&qreq))); err != nil {
+        os.NewSyscallError("ioctl TUNSETQUEUE detach:", err)
+        return err
+    }
+    return nil
+}
+
+func (ifce *Interface) IsQueueAttached() (a bool) {
+    return ifce.attached
 }

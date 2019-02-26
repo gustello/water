@@ -7,7 +7,6 @@ import (
 	"strings"
 	"syscall"
 	"unsafe"
-	"log"
 )
 
 const (
@@ -92,8 +91,6 @@ func createInterface(fd uintptr, ifName string, flags uint16) (createdIFName str
 	if err != nil {
 		return
 	}
-
-	log.Printf("TUN %s created (%d)\n", ifName, fd)
 
 	createdIFName = strings.Trim(string(req.Name[:]), "\x00")
 	return
